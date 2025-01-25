@@ -1,7 +1,7 @@
 import './App.css'
-import Calender from './Calender'
-import Movies from './Movies'
-import Notice from './notice'
+import Calender from './Calender.tsx'
+import Movies from './Movies.tsx'
+import Notice from './Notice.tsx'
 
 function App() {
 

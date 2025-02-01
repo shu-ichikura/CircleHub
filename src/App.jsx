@@ -8,14 +8,14 @@ function App() {
 
   return (
     <>
-      <div className="h-screen flex">
+      <div className="h-screen flex overflow-hidden">
         {/*サイドバー*/ }
         <aside className="w-1/5 bg-gray-800 text-white p-4 font-bold">
           サイドバー
         </aside>
 
         {/*メインコンテンツ*/ }
-        <main className="w-4/5 p-4 bg-gray-100 grid grid-rows-3 grid-cols-3 gap-4">
+        <main className="w-4/5 p-4 bg-gray-100 grid grid-cols-3 gap-4 auto-rows-min overflow-y-auto">
           {/*お知らせコンポーネント*/ }
           <section className="row-span-1 col-span-3 bg-blue-500 p-4">
             <Notice/>

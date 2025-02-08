@@ -1,9 +1,12 @@
 // import React from 'react'
 import * as React from 'react';
 import { useEffect,useState } from 'react';
-//import { createClient } from "@supabase/supabase-js";
+
 //supabaseAPI接続用
 import { supabase } from './supabaseClient';
+
+import BackToHome from './BackToHome';
+import NewNoticeModal from "./NewNoticeModal";
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -15,24 +18,10 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-//新規作成モーダル
-import { styled } from '@mui/material/styles';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
-import Typography from '@mui/material/Typography';
-//新規作成モーダル　入力エリア
-import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
-//リッチテキスト
-import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-
-//supabaseに接続
-//const supabase = createClient("https://hdkascxbgeoewvkviajp.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhka2FzY3hiZ2VvZXd2a3ZpYWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcwNDQzMzUsImV4cCI6MjA1MjYyMDMzNX0.WPiNdtG5aADOSg6OHtdmQLqTGWfhwmIVCetosM-2YSo");
+import SearchIcon from '@mui/icons-material/Search';
+import SettingsIcon from '@mui/icons-material/Settings';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 //一覧見出しの型定義
 interface Column {
@@ -47,9 +36,10 @@ interface Column {
 const columns: readonly Column[] = [
     { id: 'id', label: 'id', minWidth: 100 },
     { id: 'title', label: '件名', minWidth: 150 },
-    { id: 'content', label: '本文', minWidth: 280 },
-    { id: 'name', label: '作成者', minWidth: 150, align: 'right' },
-    { id: 'created_at', label: '作成日時', minWidth: 100, align: 'right' },
+    { id: 'content', label: '本文', minWidth: 200 },
+    { id: 'name', label: '作成者', minWidth: 150 },
+    { id: 'created_at', label: '作成日時', minWidth: 100 },
+    { id: 'actions', label: '編集', minWidth: 80 }
 ];
 
 //一覧データ部分の型定義
@@ -61,20 +51,16 @@ interface Data {
     created_at: string | Date;
 }
 
-//新規作成モーダルレイアウト
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-    '& .MuiDialogContent-root': {
-        padding: theme.spacing(2),
-    },
-    '& .MuiDialogActions-root': {
-        padding: theme.spacing(1),
-    },
-}));
-
 export default function Noticelist() {
     const [notices, setNotices] = useState<Data[]>([]);
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
+    const [open, setOpen] = React.useState(false);
+    const [searchKeyword, setSearchKeyword] = useState(""); // 検索キーワード
+
+    // **編集モードの管理**
+    const [isEdit, setIsEdit] = useState(false);
+    const [selectedNotice, setSelectedNotice] = useState<Data | null>(null);
 
     //入力フォーム初期値
     const [title, setTitle] = useState('')
@@ -102,7 +88,7 @@ export default function Noticelist() {
             console.error("Error fetching notices:", error);
             return;
         }
-        //console.log("Fetched data:", data);
+
         // created_at を JST 形式の "yyyy-mm-dd hh:mm" に変換し、作成者を抽出
         const formattedData = data.map((notice) => ({
             ...notice,
@@ -121,28 +107,109 @@ export default function Noticelist() {
         setNotices(formattedData);
     }
 
-    // お知らせ登録
+    // お知らせ登録・更新
     const handleRegister = async () => {
-        const { data, error } = await supabase.from('tb_t_notice').insert([
-            {
-            title: title,
-            content: content,
-            user_id: 1, // 仮のユーザーID
-            created_at: new Date().toISOString() // 現在時刻
-            }
-        ])
+        if (isEdit && selectedNotice?.id) {
+            // 更新処理 (UPDATE)
+            const { data, error } = await supabase
+                .from("tb_t_notice")
+                .update({
+                    title: title,
+                    content: content,
+                    //updated_at: new Date().toISOString(), // 更新時刻
+                })
+                .eq("id", selectedNotice.id); // IDで更新
 
-        if (error) {
-            console.error('登録に失敗しました:', error.message)
+            if (error) {
+                console.error("更新に失敗しました:", error.message);
+            } else {
+                console.log("更新成功:", data);
+                handleClose(); // フォームを閉じる
+                getNotices();// 更新後にデータを再取得
+            }
         } else {
-            console.log('登録成功:', data)
-            // 登録成功後、フォームをクリア
-            setTitle('')
-            setContent('')
-            handleClose()
+            // 新規登録処理 (INSERT)
+            const { data, error } = await supabase.from('tb_t_notice').insert([
+                {
+                title: title,
+                content: content,
+                user_id: 1, // 仮のユーザーID
+                created_at: new Date().toISOString() // 現在時刻
+                }
+            ])
+    
+            if (error) {
+                console.error('登録に失敗しました:', error.message)
+            } else {
+                console.log('登録成功:', data)
+                // 登録成功後、フォームをクリア
+                setTitle('')
+                setContent('')
+                handleClose();
+                getNotices(); // 新規登録後にデータを再取得
+            }
         }
     }
 
+    // お知らせ削除
+    const handleDelete = async (id: number) => {
+        if (!window.confirm("本当に削除しますか？")) return; // 確認ダイアログ
+
+        try {
+            const { error } = await supabase.from("tb_t_notice").delete().eq("id", id);
+
+            if (error) {
+                console.error("削除に失敗しました:", error.message);
+                return;
+            }
+
+            console.log(`削除成功: ${id}`);
+            setNotices((prevNotices) => prevNotices.filter((notice) => notice.id !== id)); // フロント側の状態更新
+        } catch (error) {
+            console.error("削除エラー:", error);
+        }
+    };
+
+    // 検索処理
+    const handleSearch = async () => {
+        if (!searchKeyword.trim()) {
+            setNotices([]); // 一旦リストをクリア
+            getNotices(); // 全件取得
+            return;
+        }
+    
+        const { data, error } = await supabase
+            .from("tb_t_notice")
+            .select(`
+                id, 
+                title, 
+                content, 
+                created_at, 
+                tb_m_users!inner(name)
+            `)
+            .or(`title.ilike.%${searchKeyword}%,content.ilike.%${searchKeyword}%`);
+    
+        if (error) {
+            console.error("検索エラー:", error);
+            return;
+        }
+    
+        const formattedData = data.map((notice) => ({
+            ...notice,
+            name: notice.tb_m_users?.name || "不明",
+            created_at: new Date(notice.created_at).toLocaleString("ja-JP", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+                timeZone: "Asia/Tokyo",
+            }).replace(/\//g, '-'),
+        }));
+    
+        setNotices(formattedData);
+    };
 
     //一覧ページング
     const handleChangePage = (event: unknown, newPage: number) => {
@@ -154,10 +221,19 @@ export default function Noticelist() {
         setPage(0);
     };
 
-    const [open, setOpen] = React.useState(false);
-
     //モーダル表示切替
-    const handleClickOpen = () => {
+    const handleClickOpen = (notice?: Data) => {
+        if (notice) {
+            setSelectedNotice(notice); // 編集時
+            setTitle(notice.title);
+            setContent(notice.content);
+            setIsEdit(true);
+        } else {
+            setSelectedNotice(null); // 新規作成時
+            setTitle("");
+            setContent("");
+            setIsEdit(false);
+        }
         setOpen(true);
     };
     const handleClose = () => {
@@ -167,69 +243,36 @@ export default function Noticelist() {
     return (
         <div>
             <div className="bg-gray-50 flex items-center justify-between p-4">
+                <div>
+                    <BackToHome/>
+                </div>
                 {/*検索エリア */}
                 <div className="flex items-center gap-4">
+                    <span>キーワード</span>
                     <input
-                    type="text"
-                    placeholder="検索..."
-                    className="border rounded px-2 py-1"
+                        type="text"
+                        placeholder="検索..."
+                        className="border rounded px-2 py-1"
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)} // 入力をstateに反映
                     />
+                    <Button onClick={handleSearch}>
+                        <SearchIcon sx={{ color: "blue" }} />
+                    </Button>
                 </div>
                 <Stack spacing={2} direction="row">
                     <Button variant="contained" onClick={handleClickOpen}>新規作成</Button>
                 </Stack>
-                {/*新規作成モーダル */}
-                <BootstrapDialog
-                    onClose={handleClose}
-                    aria-labelledby="customized-dialog-title"
+                {/*編集・登録モーダル */}
+                <NewNoticeModal
                     open={open}
-                >
-                    <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
-                    お知らせ作成・編集
-                    </DialogTitle>
-                    <IconButton
-                        aria-label="close"
-                        onClick={handleClose}
-                        sx={(theme) => ({
-                            position: 'absolute',
-                            right: 8,
-                            top: 8,
-                            color: theme.palette.grey[500],
-                        })}
-                    >
-                        <CloseIcon />
-                    </IconButton>
-                    <DialogContent dividers>
-                        <Box
-                                component="form"
-                                sx={{ '& > :not(style)': { m: 1, width: '50ch' } }}
-                                noValidate
-                                autoComplete="off"
-                            >
-                            <Typography gutterBottom>
-                                <TextField id="title" label="件名" variant="outlined" value={title} onChange={(e) => setTitle(e.target.value)}/>
-                            </Typography>
-                            <Typography gutterBottom>
-                                {/* <TextField
-                                    id="outlined-multiline-static"
-                                    label="本文"
-                                    multiline
-                                    rows={4}
-                                /> */}
-                                <ReactQuill
-                                    value={content}
-                                    onChange={setContent}
-                                    theme="snow"
-                                />
-                            </Typography>
-                        </Box>
-                    </DialogContent>
-                    <DialogActions>
-                    <Button autoFocus onClick={handleRegister}>
-                        登録
-                    </Button>
-                    </DialogActions>
-                </BootstrapDialog>
+                    onClose={() => setOpen(false)}
+                    title={title}
+                    setTitle={setTitle}
+                    content={content}
+                    setContent={setContent}
+                    handleRegister={handleRegister}
+                />
             </div>
             {/*一覧表示エリア */}
             <div className='mt-10'>
@@ -256,18 +299,31 @@ export default function Noticelist() {
                             return (
                                 <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
                                 {columns.map((column) => {
-                                    const value = row[column.id];
-                                    return (
-                                    <TableCell key={column.id} align={column.align}>
-                                        {column.id === "content" ? (
-                                            <div dangerouslySetInnerHTML={{ __html: row[column.id] }} />
-                                        ) : column.id === "created_at" && typeof row[column.id] === "string" ? (
-                                            new Date(row[column.id]).toLocaleString() // 日付フォーマット
-                                        ) : (
-                                            String(row[column.id])
-                                        )}
-                                    </TableCell>
-                                    );
+                                    if (column.id === 'actions') {
+                                        return (
+                                            <TableCell key={column.id} align={column.align}>
+                                                <Stack direction="row" spacing={1}>
+                                                    <SettingsIcon sx={{ color: "gray", cursor: "pointer" }} 
+                                                    onClick={() => handleClickOpen(row)} />
+                                                    <DeleteIcon sx={{ color: "gray", cursor: "pointer" }} 
+                                                    onClick={() => handleDelete(row.id)} />
+                                                </Stack>
+                                            </TableCell>
+                                        );
+                                    } else {
+                                        const value = row[column.id];
+                                        return (
+                                        <TableCell key={column.id} align={column.align}>
+                                            {column.id === "content" ? (
+                                                <div dangerouslySetInnerHTML={{ __html: row[column.id] }} />
+                                            ) : column.id === "created_at" && typeof row[column.id] === "string" ? (
+                                                new Date(row[column.id]).toLocaleString() // 日付フォーマット
+                                            ) : (
+                                                String(row[column.id])
+                                            )}
+                                        </TableCell>
+                                        );
+                                    }
                                 })}
                                 </TableRow>
                             );

@@ -2,6 +2,7 @@ import './App.css'
 import Calender from './Calender.tsx'
 import Movies from './Movies.tsx'
 import Notice from './Notice.tsx'
+import Sidebar from './Sidebar.tsx'
 
 function App() {
 
@@ -11,7 +12,7 @@ function App() {
       <div className="h-screen flex overflow-hidden">
         {/*サイドバー*/ }
         <aside className="w-1/5 bg-gray-800 text-white p-4 font-bold">
-          サイドバー
+          <Sidebar/>
         </aside>
 
         {/*メインコンテンツ*/ }

@@ -1,9 +1,10 @@
 // import React from 'react'
 import * as React from 'react';
 import { useEffect,useState } from 'react';
+import { useAuthRedirect } from './hooks/useAuthRedirect.ts'
 
 //supabaseAPI接続用
-import { supabase } from './supabaseClient';
+import { supabase } from './hooks/supabaseClient';
 
 import BackToHome from './BackToHome';
 import NewUserModal from "./NewUserModal";
@@ -25,7 +26,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 
 //一覧見出しの型定義
 interface Column {
-    id: 'id' | 'name' | 'email' | 'birthday' | 'group_id' | 'status';
+    id: 'id' | 'name' | 'email' | 'birthday' | 'group' | 'status';
     label: string;
     minWidth?: number;
     align?: 'right';
@@ -34,11 +35,10 @@ interface Column {
 
 //一覧ラベル設定と幅
 const columns: readonly Column[] = [
-    { id: 'id', label: 'id', minWidth: 100 },
-    { id: 'name', label: '名前', minWidth: 100 },
+    { id: 'name', label: '名前', minWidth: 200 },
     { id: 'email', label: 'メールアドレス', minWidth: 150 },
     { id: 'birthday', label: '誕生日', minWidth: 150 },
-    { id: 'group_id', label: 'グループ', minWidth: 100 },
+    { id: 'group', label: 'グループ', minWidth: 100 },
     { id: 'status', label: 'ステータス', minWidth: 100 },
     { id: 'actions', label: '編集', minWidth: 80 }
 ];
@@ -49,11 +49,16 @@ interface Data {
     name: string;
     email: string;
     birthday: string | Date;
-    group_id: string;
+    group: string;
     status: string;
+    group_id: number;
+    status_id: number;
 }
 
 const Userlist = () => {
+    //ログイン認証
+    const isLoading = useAuthRedirect();
+
     const [Users, setUsers] = useState<Data[]>([]);
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -69,12 +74,17 @@ const Userlist = () => {
     const [email, setEmail] = useState('')
     const [birthday, setBirthday] = useState('')
     const [group_id, setGroupId] = useState('')
-    const [status, setStatus] = useState('')
+    const [status_id, setStatusId] = useState('')
     const [password, setPassword] = useState('')
+    const [selectedGroup, setSelectedGroup] = useState('')
+    const [selectedStatus, setSelectedStatus] = useState('')
 
     //初回ページ読み込み時にユーザデータ取得
     useEffect(() => {
-        getUsers();
+        const fetchUsers = async () => {
+            await getUsers();
+        };
+        fetchUsers();
     }, []);
 
     //ユーザデータ取得
@@ -86,30 +96,31 @@ const Userlist = () => {
                 name, 
                 email, 
                 birthday, 
+                tb_m_group!left(group_name), 
+                tb_m_status!inner(status_name),
                 group_id,
-                status
+                status_id
             `)
+            .eq("delete_flag", false) // 削除済みデータを除外
             .order("created_at", { ascending: false });
-
+    
         if (error) {
             console.error("Error fetching Users:", error);
             return;
         }
-
-        // created_at を JST 形式の "yyyy-mm-dd hh:mm" に変換し、作成者を抽出
+    
+        // birthday を JST 形式の "yyyy-mm-dd" に変換
         const formattedData = data.map((User) => ({
             ...User,
-            birthday: new Date(User.birthday).toLocaleString("ja-JP", {
+            group: User.tb_m_group?.group_name || "",
+            status: User.tb_m_status?.status_name || "不明",
+            birthday: new Date(User.birthday).toLocaleDateString("ja-JP", {
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-                timeZone: "Asia/Tokyo",
-            }).replace(/\//g, '-'),
+            }),
         }));
-
+    
         setUsers(formattedData);
     }
 
@@ -124,7 +135,7 @@ const Userlist = () => {
                     email: email,
                     birthday: birthday,
                     group_id: group_id,
-                    status: status,
+                    status_id: status,
                     password: password,
                     //updated_at: new Date().toISOString(), // 更新時刻
                 })
@@ -138,14 +149,25 @@ const Userlist = () => {
                 getUsers();// 更新後にデータを再取得
             }
         } else {
+            // Authentication に登録
+            const { data:Authdata, error:Autherror } = await supabase.auth.signUp({ email, password });
+
+            if (Autherror) {
+                console.error("認証登録エラー:", Autherror.message);
+                return;
+            }
+
+            const userId = Authdata.user?.id; // Supabase auth の UID
+
             // 新規登録処理 (INSERT)
             const { data, error } = await supabase.from('tb_m_users').insert([
                 {
+                id: userId,
                 name: name,
                 email: email,
                 birthday: birthday,
                 group_id: group_id,
-                status: status,
+                status_id: status,
                 password: password,
                 created_at: new Date().toISOString() // 現在時刻
                 }
@@ -160,7 +182,7 @@ const Userlist = () => {
                 setEmail('')
                 setBirthday('')
                 setGroupId('')
-                setStatus('')
+                setStatusId('')
                 setPassword('')
                 handleClose();
                 getUsers(); // 新規登録後にデータを再取得
@@ -168,12 +190,15 @@ const Userlist = () => {
         }
     }
 
-    // ユーザ削除
+    // ユーザ削除（論理削除）
     const handleDelete = async (id: number) => {
         if (!window.confirm("本当に削除しますか？")) return; // 確認ダイアログ
 
         try {
-            const { error } = await supabase.from("tb_m_users").delete().eq("id", id);
+            const { error } = await supabase
+                .from("tb_m_users")
+                .update({ delete_flag: true }) // 論理削除
+                .eq("id", id);
 
             if (error) {
                 console.error("削除に失敗しました:", error.message);
@@ -202,27 +227,27 @@ const Userlist = () => {
                 name, 
                 email, 
                 birthday, 
-                group_id, 
-                status
+                tb_m_group!left(group_name), 
+                tb_m_status!inner(status_name)
             `)
-            .or(`name.ilike.%${searchKeyword}%`);
+            .or(`name.ilike.%${searchKeyword}%`)
+            .eq("delete_flag", false); // 削除済みデータを除外
     
         if (error) {
             console.error("検索エラー:", error);
             return;
         }
     
+        // birthday を JST 形式の "yyyy-mm-dd" に変換
         const formattedData = data.map((User) => ({
             ...User,
-            birthday: new Date(User.birthday).toLocaleString("ja-JP", {
+            group: User.tb_m_group?.group_name || "",
+            status: User.tb_m_status?.status_name || "不明",
+            birthday: new Date(User.birthday).toLocaleDateString("ja-JP", {
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-                timeZone: "Asia/Tokyo",
-            }).replace(/\//g, '-'),
+            }),
         }));
     
         setUsers(formattedData);
@@ -246,17 +271,22 @@ const Userlist = () => {
             setEmail(User.email);
             setBirthday(User.birthday);
             setGroupId(User.group_id);
-            setStatus(User.status);
+            setStatusId(User.status_id);
+            // ここで選択されるべきIDをセット
+            setSelectedGroup(User.group_id);
+            setSelectedStatus(User.status_id);
             setPassword(User.password);
             setIsEdit(true);
         } else {
             setSelectedUser(null); // 新規作成時
-                setName('')
-                setEmail('')
-                setBirthday('')
-                setGroupId('')
-                setStatus('')
-                setPassword('')
+            setName('')
+            setEmail('')
+            setBirthday('')
+            setGroupId('')
+            setStatusId('')
+            setPassword('')
+            setSelectedGroup('')
+            setSelectedStatus('')
             setIsEdit(false);
         }
         setOpen(true);
@@ -265,116 +295,124 @@ const Userlist = () => {
         setOpen(false);
     };
 
-  return (
-    <div>
-        <div className="bg-gray-50 flex items-center justify-between p-4">
-            <div>
-                <BackToHome/>
-            </div>
-            {/*検索エリア */}
-            <div className="flex items-center gap-4">
-                <span>キーワード</span>
-                <input
-                    type="text"
-                    placeholder="検索..."
-                    className="border rounded px-2 py-1"
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)} // 入力をstateに反映
+    //ログイン中でなければ、ログイン画面に飛ばす
+    if (isLoading) {
+        return <div>Loading...</div>;
+    }
+    return (
+        <div>
+            <div className="bg-gray-50 flex items-center justify-between p-4">
+                <div>
+                    <BackToHome/>
+                </div>
+                {/*検索エリア */}
+                <div className="flex items-center gap-4">
+                    <span>キーワード</span>
+                    <input
+                        type="text"
+                        placeholder="検索..."
+                        className="border rounded px-2 py-1"
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)} // 入力をstateに反映
+                    />
+                    <Button onClick={handleSearch}>
+                        <SearchIcon sx={{ color: "blue" }} />
+                    </Button>
+                </div>
+                <Stack spacing={2} direction="row">
+                    <Button variant="contained" onClick={handleClickOpen}>新規作成</Button>
+                </Stack>
+                {/*編集・登録モーダル */}
+                <NewUserModal
+                    open={open}
+                    onClose={() => setOpen(false)}
+                    name={name}
+                    setName={setName}
+                    email={email}
+                    setEmail={setEmail}
+                    birthday={birthday}
+                    setBirthday={setBirthday}
+                    group_id={group_id}
+                    setGroupId={setGroupId}
+                    status_id={status_id}
+                    setStatusId={setStatusId}
+                    password={password}
+                    setPassword={setPassword}
+                    handleRegister={handleRegister}
+                    selectedGroup={selectedGroup}
+                    setSelectedGroup={setSelectedGroup}
+                    selectedStatus={selectedStatus}
+                    setSelectedStatus={setSelectedStatus}
                 />
-                <Button onClick={handleSearch}>
-                    <SearchIcon sx={{ color: "blue" }} />
-                </Button>
             </div>
-            <Stack spacing={2} direction="row">
-                <Button variant="contained" onClick={handleClickOpen}>新規作成</Button>
-            </Stack>
-            {/*編集・登録モーダル */}
-            <NewUserModal
-                open={open}
-                onClose={() => setOpen(false)}
-                name={name}
-                setName={setName}
-                email={email}
-                setEmail={setEmail}
-                birthday={birthday}
-                setBirthday={setBirthday}
-                group_id={group_id}
-                setGroupId={setGroupId}
-                status={status}
-                setStatus={setStatus}
-                password={password}
-                setPassword={setPassword}
-                handleRegister={handleRegister}
-            />
-        </div>
-        {/*一覧表示エリア */}
-        <div className='mt-10'>
-            <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-                <TableContainer sx={{ maxHeight: 440 }}>
-                <Table stickyHeader aria-label="sticky table">
-                    <TableHead>
-                    <TableRow>
-                        {columns.map((column) => (
-                        <TableCell
-                            key={column.id}
-                            align={column.align}
-                            style={{ minWidth: column.minWidth }}
-                        >
-                            {column.label}
-                        </TableCell>
-                        ))}
-                    </TableRow>
-                    </TableHead>
-                    <TableBody>
-                    {Users
-                        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                        .map((row) => {
-                        return (
-                            <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                            {columns.map((column) => {
-                                if (column.id === 'actions') {
-                                    return (
+            {/*一覧表示エリア */}
+            <div className='mt-10'>
+                <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+                    <TableContainer sx={{ maxHeight: 440 }}>
+                    <Table stickyHeader aria-label="sticky table">
+                        <TableHead>
+                        <TableRow>
+                            {columns.map((column) => (
+                            <TableCell
+                                key={column.id}
+                                align={column.align}
+                                style={{ minWidth: column.minWidth }}
+                            >
+                                {column.label}
+                            </TableCell>
+                            ))}
+                        </TableRow>
+                        </TableHead>
+                        <TableBody>
+                        {Users
+                            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                            .map((row) => {
+                            return (
+                                <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
+                                {columns.map((column) => {
+                                    if (column.id === 'actions') {
+                                        return (
+                                            <TableCell key={column.id} align={column.align}>
+                                                <Stack direction="row" spacing={1}>
+                                                    <SettingsIcon sx={{ color: "gray", cursor: "pointer" }} 
+                                                    onClick={() => handleClickOpen(row)} />
+                                                    <DeleteIcon sx={{ color: "gray", cursor: "pointer" }} 
+                                                    onClick={() => handleDelete(row.id)} />
+                                                </Stack>
+                                            </TableCell>
+                                        );
+                                    } else {
+                                        const value = row[column.id];
+                                        return (
                                         <TableCell key={column.id} align={column.align}>
-                                            <Stack direction="row" spacing={1}>
-                                                <SettingsIcon sx={{ color: "gray", cursor: "pointer" }} 
-                                                onClick={() => handleClickOpen(row)} />
-                                                <DeleteIcon sx={{ color: "gray", cursor: "pointer" }} 
-                                                onClick={() => handleDelete(row.id)} />
-                                            </Stack>
+                                            {column.id === "birthday" && typeof row[column.id] === "string" ? (
+                                                new Date(row[column.id]).toLocaleDateString() // 日付フォーマット
+                                            ) : (
+                                                String(row[column.id])
+                                            )}
                                         </TableCell>
-                                    );
-                                } else {
-                                    const value = row[column.id];
-                                    return (
-                                    <TableCell key={column.id} align={column.align}>
-                                        {column.id === "birthday" && typeof row[column.id] === "string" ? (
-                                            new Date(row[column.id]).toLocaleString() // 日付フォーマット
-                                        ) : (
-                                            String(row[column.id])
-                                        )}
-                                    </TableCell>
-                                    );
-                                }
+                                        );
+                                    }
+                                })}
+                                </TableRow>
+                            );
                             })}
-                            </TableRow>
-                        );
-                        })}
-                    </TableBody>
-                </Table>
-                </TableContainer>
-                <TablePagination
-                rowsPerPageOptions={[10, 25, 100]}
-                component="div"
-                count={Users.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={handleChangePage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-            </Paper>
+                        </TableBody>
+                    </Table>
+                    </TableContainer>
+                    <TablePagination
+                    rowsPerPageOptions={[10, 25, 100]}
+                    component="div"
+                    count={Users.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
+                </Paper>
+            </div>
         </div>
-    </div>
-  )
+    )
 }
 
 export default Userlist

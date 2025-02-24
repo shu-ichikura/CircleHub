@@ -1,9 +1,11 @@
 // import React from 'react'
 import * as React from 'react';
 import { useEffect,useState } from 'react';
+import { useAuthRedirect } from './hooks/useAuthRedirect.ts'
+import { getUserLoginId } from './hooks/getUserLoginId.ts';
 
 //supabaseAPI接続用
-import { supabase } from './supabaseClient';
+import { supabase } from './hooks/supabaseClient';
 
 import BackToHome from './BackToHome';
 import NewNoticeModal from "./NewNoticeModal";
@@ -22,6 +24,7 @@ import "react-quill/dist/quill.snow.css";
 import SearchIcon from '@mui/icons-material/Search';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteIcon from '@mui/icons-material/Delete';
+
 
 //一覧見出しの型定義
 interface Column {
@@ -52,6 +55,9 @@ interface Data {
 }
 
 export default function Noticelist() {
+    //ログイン認証
+    const isLoading = useAuthRedirect();
+
     const [notices, setNotices] = useState<Data[]>([]);
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -128,12 +134,15 @@ export default function Noticelist() {
                 getNotices();// 更新後にデータを再取得
             }
         } else {
+            const userId = await getUserLoginId();
+            console.log("ユーザID：" + userId)
             // 新規登録処理 (INSERT)
             const { data, error } = await supabase.from('tb_t_notice').insert([
                 {
                 title: title,
                 content: content,
-                user_id: 1, // 仮のユーザーID
+                // user_id: '39571f86-c404-4c5f-ae2f-655ef2e8b2f5', // 仮のユーザーID
+                user_id: userId,
                 created_at: new Date().toISOString() // 現在時刻
                 }
             ])
@@ -240,6 +249,10 @@ export default function Noticelist() {
         setOpen(false);
     };
 
+    //ログイン中でなければ、ログイン画面に飛ばす
+    if (isLoading) {
+        return <div>Loading...</div>;
+    }
     return (
         <div>
             <div className="bg-gray-50 flex items-center justify-between p-4">

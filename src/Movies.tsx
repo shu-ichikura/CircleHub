@@ -7,7 +7,6 @@ import CardHeader from '@mui/material/CardHeader';
 import CardMedia from '@mui/material/CardMedia';
 import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
-import Collapse from '@mui/material/Collapse';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -120,13 +119,13 @@ const Movies = () => {
 
 
   return (
-    <div className="flex space-x-4">
+    <div className="flex flex-wrap gap-4 justify-start">
       {movies.map((movie) => (
-        <Card sx={{ maxWidth: 345 }}>
+        <Card key={movie.id} sx={{ width: 300 }}>
           <CardHeader
             avatar={
               <Avatar sx={{ bgcolor: red[500] }} aria-label="recipe">
-                {movie.name}
+                {movie.name[0]}
               </Avatar>
             }
             action={

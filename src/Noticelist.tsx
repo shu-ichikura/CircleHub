@@ -9,6 +9,7 @@ import { supabase } from './hooks/supabaseClient';
 
 import BackToHome from './BackToHome';
 import NewNoticeModal from "./NewNoticeModal";
+import NoticeDetail from './NoticeDetail.tsx';
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -28,7 +29,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 
 //一覧見出しの型定義
 interface Column {
-    id: 'id' | 'title' | 'content' | 'name' | 'created_at';
+    id: 'title' | 'content' | 'file' | 'name' | 'created_at'| 'actions';
     label: string;
     minWidth?: number;
     align?: 'right';
@@ -37,9 +38,9 @@ interface Column {
 
 //一覧ラベル設定と幅
 const columns: readonly Column[] = [
-    { id: 'id', label: 'id', minWidth: 100 },
     { id: 'title', label: '件名', minWidth: 150 },
     { id: 'content', label: '本文', minWidth: 200 },
+    { id: 'content', label: '添付ファイル', minWidth: 100 },
     { id: 'name', label: '作成者', minWidth: 150 },
     { id: 'created_at', label: '作成日時', minWidth: 100 },
     { id: 'actions', label: '編集', minWidth: 80 }
@@ -47,7 +48,6 @@ const columns: readonly Column[] = [
 
 //一覧データ部分の型定義
 interface Data {
-    id: number;
     title: string;
     content: string;
     name: any;
@@ -71,6 +71,12 @@ export default function Noticelist() {
     //入力フォーム初期値
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
+    const [uploadfile, setUploadfile] = useState('')
+    const [attachedFile, setAttachedFile] = useState<{ file_name: string; path: string } | null>(null);
+
+    //詳細モーダル状態管理
+    const [selectedNoticeRow, setSelectedNoticeRow] = useState(null);
+    const [detailOpen, setDetailOpen] = useState(false);
 
     //初回ページ読み込み時にお知らせデータ取得
     useEffect(() => {
@@ -113,6 +119,97 @@ export default function Noticelist() {
         setNotices(formattedData);
     }
 
+    // ファイルアップロードとDB登録処理
+    const handleFileUpload = async (file: File, noticeId: string) => {
+        if (!file) return;
+
+        const filePath = `private/notice/${noticeId}/${file.name}`;
+
+        try {
+            // ファイルを Supabase バケットにアップロード
+            const { error: uploadError } = await supabase.storage
+                .from("my_bucket")
+                .upload(filePath, file, {
+                    cacheControl: "3600",
+                    upsert: false,
+                });
+
+            if (uploadError) {
+                console.error("ファイルのアップロードに失敗しました:", uploadError.message);
+                return;
+            }
+
+            console.log("ファイルアップロード成功:", filePath);
+
+            // 添付ファイルテーブルにデータを登録
+            const { error: insertError } = await supabase.from("tb_t_notice_file").insert([
+                {
+                    notice_id: noticeId,
+                    path: filePath,
+                    file_name: file.name,
+                    created_at: new Date().toISOString(),
+                },
+            ]);
+
+            if (insertError) {
+                console.error("添付ファイルデータの登録に失敗しました:", insertError.message);
+                return;
+            }
+
+            console.log("添付ファイルデータの登録成功");
+        } catch (error) {
+            console.error("エラーが発生しました:", error);
+        }
+    };
+
+    // 添付ファイルデータの取得
+    const fetchAttachedFile = async (noticeId: string) => {
+        const { data, error } = await supabase
+            .from("tb_t_notice_file")
+            .select("file_name, path")
+            .eq("notice_id", noticeId)
+            .single();
+
+        if (error) {
+            console.error("添付ファイルデータの取得に失敗しました:", error.message);
+            return null;
+        }
+
+        return data;
+    };
+
+    // 添付ファイル削除処理
+    const deleteAttachedFile = async (filePath: string, noticeId: string) => {
+        try {
+            // バケットからファイルを削除
+            const { error: deleteError } = await supabase.storage
+                .from("my_bucket")
+                .remove([filePath]);
+
+            if (deleteError) {
+                console.error("バケットからのファイル削除に失敗しました:", deleteError.message);
+                return;
+            }
+
+            console.log("バケットからのファイル削除成功:", filePath);
+
+            // 添付ファイルテーブルからデータを削除
+            const { error: dbDeleteError } = await supabase
+                .from("tb_t_notice_file")
+                .delete()
+                .eq("notice_id", noticeId);
+
+            if (dbDeleteError) {
+                console.error("添付ファイルデータの削除に失敗しました:", dbDeleteError.message);
+                return;
+            }
+
+            console.log("添付ファイルデータの削除成功");
+        } catch (error) {
+            console.error("エラーが発生しました:", error);
+        }
+    };
+
     // お知らせ登録・更新
     const handleRegister = async () => {
         if (isEdit && selectedNotice?.id) {
@@ -127,37 +224,55 @@ export default function Noticelist() {
                 .eq("id", selectedNotice.id); // IDで更新
 
             if (error) {
-                console.error("更新に失敗しました:", error.message);
-            } else {
-                console.log("更新成功:", data);
-                handleClose(); // フォームを閉じる
-                getNotices();// 更新後にデータを再取得
+                console.error("お知らせの更新に失敗しました:", error.message);
+                return;
+            }
+            console.log("お知らせの更新成功");
+
+            // 添付ファイルの処理
+            if (attachedFile && uploadfile) {
+                // ① 新たにファイル添付を行った場合
+                await deleteAttachedFile(attachedFile.path, selectedNotice.id); // 既存ファイルを削除
+                await handleFileUpload(uploadfile, selectedNotice.id); // 新しいファイルをアップロード
+            } else if (attachedFile && !uploadfile) {
+                // ② 新たにファイル添付を行わなかった場合
+                await deleteAttachedFile(attachedFile.path, selectedNotice.id); // 既存ファイルを削除
+            } else if (!attachedFile && uploadfile) {
+                // 新規ファイルアップロード
+                await handleFileUpload(uploadfile, selectedNotice.id);
             }
         } else {
             const userId = await getUserLoginId();
-            console.log("ユーザID：" + userId)
             // 新規登録処理 (INSERT)
             const { data, error } = await supabase.from('tb_t_notice').insert([
                 {
                 title: title,
                 content: content,
-                // user_id: '39571f86-c404-4c5f-ae2f-655ef2e8b2f5', // 仮のユーザーID
                 user_id: userId,
                 created_at: new Date().toISOString() // 現在時刻
                 }
             ])
+            .select(); // 挿入されたデータを取得
     
             if (error) {
-                console.error('登録に失敗しました:', error.message)
-            } else {
-                console.log('登録成功:', data)
-                // 登録成功後、フォームをクリア
-                setTitle('')
-                setContent('')
-                handleClose();
-                getNotices(); // 新規登録後にデータを再取得
+                console.error("お知らせの登録に失敗しました:", error.message);
+                return;
+            }
+
+            console.log("お知らせの登録成功");
+
+            // ファイルアップロード処理
+            if (uploadfile && data && data.length > 0) {
+                await handleFileUpload(uploadfile, data[0].id);
             }
         }
+        // 登録成功後、フォームをクリア
+        setTitle('')
+        setContent('')
+        setUploadfile(null);
+        setAttachedFile(null);
+        handleClose();
+        getNotices(); //データを再取得
     }
 
     // お知らせ削除
@@ -231,17 +346,27 @@ export default function Noticelist() {
     };
 
     //モーダル表示切替
-    const handleClickOpen = (notice?: Data) => {
+    const handleClickOpen = async (notice?: Data) => {
         if (notice) {
             setSelectedNotice(notice); // 編集時
             setTitle(notice.title);
             setContent(notice.content);
             setIsEdit(true);
+
+            // 添付ファイルデータを取得
+            const attachedFile = await fetchAttachedFile(notice.id);
+            if (attachedFile) {
+                setUploadfile(null); // 新規アップロードをリセット
+                setAttachedFile(attachedFile); // 既存の添付ファイルデータを設定
+            } else {
+                setAttachedFile(null);
+            }
         } else {
             setSelectedNotice(null); // 新規作成時
             setTitle("");
             setContent("");
             setIsEdit(false);
+            setAttachedFile(null); // 添付ファイルデータをリセット
         }
         setOpen(true);
     };
@@ -285,7 +410,12 @@ export default function Noticelist() {
                     content={content}
                     setContent={setContent}
                     handleRegister={handleRegister}
+                    setUploadfile={setUploadfile}
+                    attachedFile={attachedFile}
+                    setAttachedFile={setAttachedFile}
                 />
+                {/*詳細モーダル */}
+                <NoticeDetail open={detailOpen} onClose={() => setDetailOpen(false)} notice={selectedNotice} />
             </div>
             {/*一覧表示エリア */}
             <div className='mt-10'>
@@ -310,7 +440,15 @@ export default function Noticelist() {
                             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                             .map((row) => {
                             return (
-                                <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
+                                <TableRow hover role="checkbox" tabIndex={-1} key={row.id}
+                                    onClick={(e) => {
+                                        const target = e.target as HTMLElement | null;
+                                        if (target && !target.closest('.MuiSvgIcon-root')) {
+                                            setSelectedNotice(row);
+                                            setDetailOpen(true);
+                                        }
+                                    }}
+                                >
                                 {columns.map((column) => {
                                     if (column.id === 'actions') {
                                         return (

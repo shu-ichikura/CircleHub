@@ -38,13 +38,7 @@ function App() {
             </section>
 
             {/*動画一覧コンポーネント */}
-            <section className="row-span-1 col-span-1 bg-orange-500 text-black p-4">
-              <Movies/>
-            </section>
-            <section className="row-span-1 col-span-1 bg-orange-500 text-black p-4">
-              <Movies/>
-            </section>
-            <section className="row-span-1 col-span-1 bg-orange-500 text-black p-4">
+            <section className="row-span-1 col-span-3 bg-orange-500 text-black p-4">
               <Movies/>
             </section>
           </main>

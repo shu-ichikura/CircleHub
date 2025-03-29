@@ -7,13 +7,13 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
-import { createClient } from "@supabase/supabase-js";
 import { supabase } from './hooks/supabaseClient';
-
-// const supabase = createClient("https://hdkascxbgeoewvkviajp.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhka2FzY3hiZ2VvZXd2a3ZpYWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcwNDQzMzUsImV4cCI6MjA1MjYyMDMzNX0.WPiNdtG5aADOSg6OHtdmQLqTGWfhwmIVCetosM-2YSo");
+import NoticeDetail from './NoticeDetail';
 
 const Notice = () => {
     const [notices, setNotices] = useState([]);
+    const [selectedNotice, setSelectedNotice] = useState(null); // 選択されたお知らせ
+    const [detailOpen, setDetailOpen] = useState(false); // 詳細モーダルの状態
 
     useEffect(() => {
         getNotices();
@@ -53,12 +53,23 @@ const Notice = () => {
     
         setNotices(formattedData); // データを状態に保存
     }
+
+    const handleRowClick = (notice) => {
+        setSelectedNotice(notice); // 選択されたお知らせを設定
+        setDetailOpen(true); // モーダルを開く
+    };
+
+    const handleCloseDetail = () => {
+        setDetailOpen(false); // モーダルを閉じる
+        setSelectedNotice(null); // 選択されたお知らせをリセット
+    };
+
   return (
     <div>
         <List sx={{ width: '100%', maxWidth: 800, bgcolor: 'background.paper' }}>
         {notices.map((notice) => (
-            <>
-                <ListItem alignItems="flex-start">
+            <React.Fragment key={notice.id}>
+                <ListItem alignItems="flex-start" onClick={() => handleRowClick(notice)} sx={{ cursor: 'pointer' }}>
                         <ListItemAvatar>
                             <Avatar alt="Travis Howard" src="/static/images/avatar/2.jpg" />
                         </ListItemAvatar>
@@ -82,9 +93,12 @@ const Notice = () => {
                                 />
                             </React.Fragment>} />
                 </ListItem><Divider variant="inset" component="li" />
-            </>
+            </React.Fragment>
         ))}
         </List>
+
+        {/* 詳細モーダル */}
+        <NoticeDetail open={detailOpen} onClose={handleCloseDetail} notice={selectedNotice} />
     </div>
   )
 }

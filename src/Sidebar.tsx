@@ -9,6 +9,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
 import EmailIcon from '@mui/icons-material/Email';
 import PersonIcon from '@mui/icons-material/Person';
+import MovieIcon from '@mui/icons-material/Movie';
 
 const Sidebar = () => {
   return (
@@ -30,6 +31,14 @@ const Sidebar = () => {
                     <PersonIcon sx={{ color: "white" }} />
                 </ListItemIcon>
                 <ListItemText primary="ユーザ一覧" />
+                </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+                <ListItemButton component="a" href="/Movielist">
+                <ListItemIcon>
+                    <MovieIcon sx={{ color: "white" }} />
+                </ListItemIcon>
+                <ListItemText primary="動画一覧" />
                 </ListItemButton>
             </ListItem>
             </List>

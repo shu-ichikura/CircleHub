@@ -1,5 +1,5 @@
 import * as React from "react";
-// import { useState } from "react";
+import { useState, ChangeEvent } from "react";
 import { styled } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -31,7 +31,10 @@ interface NewNoticeModalProps {
   setTitle: (value: string) => void;
   content: string;
   setContent: (value: string) => void;
-  handleRegister: () => void; // 修正
+  handleRegister: () => void;
+  setUploadfile: (file: File | null) => void; // ファイルを設定する関数を受け取る
+  attachedFile: { file_name: string; path: string } | null; // 既存の添付ファイルデータ
+  setAttachedFile: (file: null) => void; // 添付ファイルデータをリセットする関数
 }
 
 // Propsの型定義
@@ -49,7 +52,19 @@ export default function NewNoticeModal({
   content,
   setContent,
   handleRegister,
+  setUploadfile,
+  attachedFile,
+  setAttachedFile,
 }: NewNoticeModalProps) {
+  //const [file, setFile] = useState<File | null>(null);
+
+  // 添付ファイル選択時の処理
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const selectedFile = event.target.files[0];
+    setUploadfile(selectedFile); // 親コンポーネントにファイルを渡す
+  };
 
   return (
     <BootstrapDialog onClose={onClose} open={open}>
@@ -73,6 +88,23 @@ export default function NewNoticeModal({
           </Typography>
           <Typography gutterBottom>
             <ReactQuill value={content} onChange={setContent} theme="snow" />
+          </Typography>
+          <Typography gutterBottom>
+            {attachedFile ? (
+                <div>
+                  <span>{attachedFile.file_name}</span>
+                  <IconButton
+                    onClick={() => {
+                      setAttachedFile(null); // 添付ファイルデータをリセット
+                      setUploadfile(null); // アップロードフォームを表示
+                    }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </div>
+              ) : (
+                <input type="file" onChange={handleFileChange} />
+            )}
           </Typography>
         </Box>
       </DialogContent>

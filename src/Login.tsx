@@ -39,7 +39,7 @@ const Login = () => {
                     <div className="mb-4">
                         <input
                             type="email"
-                            className="border rounded-md w-full py-2 px-3 focus:outline-none focus:border-sky-500"
+                            className="border rounded-md w-full py-2 px-3 text-base focus:outline-none focus:border-sky-500"
                             placeholder="メールアドレス"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -50,7 +50,7 @@ const Login = () => {
                     <div className="mb-6">
                     <input
                             type="password"
-                            className="border rounded-md w-full py-2 px-3 focus:outline-none focus:border-sky-500"
+                            className="border rounded-md w-full py-2 px-3 text-base focus:outline-none focus:border-sky-500"
                             placeholder="パスワード"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}

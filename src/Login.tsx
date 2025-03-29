@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 //supabaseAPI接続用
 import { supabase } from './hooks/supabaseClient';
@@ -9,6 +9,14 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const navigate = useNavigate(); // React Router のナビゲーション
+
+    useEffect(() => {
+        // ビューポートをリセット
+        const metaViewport = document.querySelector('meta[name="viewport"]');
+        if (metaViewport) {
+            metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+        }
+    }, []);
 
     // ログイン処理
     const handleLogin = async (e: React.FormEvent) => {

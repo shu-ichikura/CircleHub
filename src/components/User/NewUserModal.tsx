@@ -9,7 +9,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 
-import { supabase } from "./hooks/supabaseClient";
+import { supabase } from  "../../lib/supabaseClient";
 import { useEffect, useState } from "react";
 
 import FormControl from '@mui/material/FormControl';

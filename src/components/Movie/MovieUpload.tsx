@@ -8,10 +8,10 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import CircularProgress from "@mui/material/CircularProgress"; // ローディング表示用
 import { v4 as uuidv4 } from "uuid"; // UUID生成用
-import { getUserLoginId } from './hooks/getUserLoginId.ts';
+import { getUserLoginId } from "../../hooks/getUserLoginId"; // ユーザID取得用
 
 //supabaseAPI接続用
-import { supabase } from './hooks/supabaseClient';
+import { supabase } from "../../lib/supabaseClient";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     "& .MuiDialogContent-root": {

@@ -7,7 +7,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
-import { supabase } from './hooks/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 import NoticeDetail from './NoticeDetail';
 
 const Notice = () => {
@@ -19,6 +19,7 @@ const Notice = () => {
         getNotices();
     }, []);
 
+    //お知らせ取得
     async function getNotices() {
         const { data, error }: any | null = await supabase
         .from("tb_t_notice")

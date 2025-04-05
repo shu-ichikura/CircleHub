@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
-import { supabase } from './hooks/supabaseClient'
+import { supabase } from './lib/supabaseClient'
 
 const ResetPassword = () => {
     const [email, setEmail] = useState('');

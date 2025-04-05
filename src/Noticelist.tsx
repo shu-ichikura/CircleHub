@@ -5,11 +5,11 @@ import { useAuthRedirect } from './hooks/useAuthRedirect.ts'
 import { getUserLoginId } from './hooks/getUserLoginId.ts';
 
 //supabaseAPI接続用
-import { supabase } from './hooks/supabaseClient';
+import { supabase } from './lib/supabaseClient';
 
-import BackToHome from './BackToHome';
-import NewNoticeModal from "./NewNoticeModal";
-import NoticeDetail from './NoticeDetail.tsx';
+import BackToHome from './components/BackToHome';
+import NewNoticeModal from "./components/Notice/NewNoticeModal";
+import NoticeDetail from "./components/Notice/NoticeDetail";
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -386,7 +386,7 @@ export default function Noticelist() {
                 </div>
                 {/*検索エリア */}
                 <div className="flex items-center gap-4">
-                    <span>キーワード</span>
+                    <span>件名・本文</span>
                     <input
                         type="text"
                         placeholder="検索..."

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from './hooks/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 import MenuIcon from '@mui/icons-material/Menu';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';

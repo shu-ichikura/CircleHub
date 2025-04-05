@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 //supabaseAPI接続用
-import { supabase } from './hooks/supabaseClient';
+import { supabase } from './lib/supabaseClient';
 
 
 const Login = () => {

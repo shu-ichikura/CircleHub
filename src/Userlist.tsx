@@ -4,10 +4,10 @@ import { useEffect,useState } from 'react';
 import { useAuthRedirect } from './hooks/useAuthRedirect.ts'
 
 //supabaseAPI接続用
-import { supabase } from './hooks/supabaseClient';
+import { supabase } from './lib/supabaseClient';
 
-import BackToHome from './BackToHome';
-import NewUserModal from "./NewUserModal";
+import BackToHome from './components/BackToHome';
+import NewUserModal from "./components/User/NewUserModal";
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -307,7 +307,7 @@ const Userlist = () => {
                 </div>
                 {/*検索エリア */}
                 <div className="flex items-center gap-4">
-                    <span>キーワード</span>
+                    <span>名前</span>
                     <input
                         type="text"
                         placeholder="検索..."

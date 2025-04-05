@@ -4,11 +4,11 @@ import { useAuthRedirect } from './hooks/useAuthRedirect.ts'
 import { getUserLoginId } from './hooks/getUserLoginId.ts';
 
 //supabaseAPI接続用
-import { supabase } from './hooks/supabaseClient';
+import { supabase } from './lib/supabaseClient';
 
-import BackToHome from './BackToHome';
-import MovieUpload from './MovieUpload.tsx';
-import MovieModal from "./MovieModal"; 
+import BackToHome from './components/BackToHome';
+import MovieUpload from './components/Movie/MovieUpload.tsx';
+import MovieModal from "./components/Movie/MovieModal"; 
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -298,7 +298,7 @@ const Movielist = () => {
                 </div>
                 {/*検索エリア */}
                 <div className="flex items-center gap-4">
-                    <span>キーワード</span>
+                    <span>動画名</span>
                     <input
                         type="text"
                         placeholder="検索..."

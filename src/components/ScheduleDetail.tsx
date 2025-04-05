@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { getUserLoginId } from './hooks/getUserLoginId.ts';
-import { supabase } from './hooks/supabaseClient';
+import { getUserLoginId } from '../hooks/getUserLoginId.ts';
+import { supabase } from '../lib/supabaseClient';
 
 import { styled } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";

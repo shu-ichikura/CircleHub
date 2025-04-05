@@ -16,7 +16,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 //supabaseAPI接続用
-import { supabase } from './hooks/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 
 interface Data {
   id: number;

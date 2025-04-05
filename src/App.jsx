@@ -1,8 +1,8 @@
 import './App.css'
-import Calender from './Calender.tsx'
-import Header from './Header.tsx'
-import Movies from './Movies.tsx'
-import Notice from './Notice.tsx'
+import Calender from './components/Calender.tsx'
+import Header from './components/Header.tsx'
+import Movies from './components/Movie/Movies.tsx'
+import Notice from './components/Notice/Notice.tsx'
 import { useAuthRedirect } from './hooks/useAuthRedirect.ts'
 
 function App() {

@@ -35,6 +35,7 @@ interface NewNoticeModalProps {
   setUploadfile: (file: File | null) => void; // ファイルを設定する関数を受け取る
   attachedFile: { file_name: string; path: string } | null; // 既存の添付ファイルデータ
   setAttachedFile: (file: null) => void; // 添付ファイルデータをリセットする関数
+  handleFileDelete: () => void; 
 }
 
 // Propsの型定義
@@ -55,6 +56,7 @@ export default function NewNoticeModal({
   setUploadfile,
   attachedFile,
   setAttachedFile,
+  handleFileDelete
 }: NewNoticeModalProps) {
   //const [file, setFile] = useState<File | null>(null);
 
@@ -90,20 +92,25 @@ export default function NewNoticeModal({
             <ReactQuill value={content} onChange={setContent} theme="snow" />
           </Typography>
           <Typography gutterBottom>
-            {attachedFile ? (
+            {attachedFile && attachedFile.file_name ? (
                 <div>
-                  <span>{attachedFile.file_name}</span>
-                  <IconButton
-                    onClick={() => {
-                      setAttachedFile(null); // 添付ファイルデータをリセット
-                      setUploadfile(null); // アップロードフォームを表示
-                    }}
-                  >
-                    <CloseIcon />
-                  </IconButton>
+                    <span>{attachedFile.file_name}</span>
+                    <IconButton
+                        onClick={handleFileDelete} // handleFileDelete を呼び出す
+                        className="ml-2 text-red-500 underline"
+                    >
+                        <CloseIcon />
+                    </IconButton>
                 </div>
-              ) : (
-                <input type="file" onChange={handleFileChange} />
+            ) : (
+                <input
+                    type="file"
+                    onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                            setUploadfile(e.target.files[0]);
+                        }
+                    }}
+                />
             )}
           </Typography>
         </Box>

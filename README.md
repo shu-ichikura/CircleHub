@@ -3,9 +3,6 @@
 ### アプリ名
 CircleHub
 
-### アプリURL
-https://circle-hub-one.vercel.app/
-
 ### 概要
 社会人や大学生のサークルがライン、Googleカレンダー、GoogleDrive、紙の資料など複数のアプリ・ツールを使って管理しているものを  
 一元管理できるようにするためのアプリです。

@@ -159,6 +159,9 @@ const Userlist = () => {
 
             const userId = Authdata.user?.id; // Supabase auth の UID
 
+            console.log("登録するグループID：", group_id);
+            console.log("登録するステータスID：", status_id);
+
             // 新規登録処理 (INSERT)
             const { data, error } = await supabase.from('tb_m_users').insert([
                 {
@@ -167,7 +170,7 @@ const Userlist = () => {
                 email: email,
                 birthday: birthday,
                 group_id: group_id,
-                status_id: status,
+                status_id: status_id,
                 password: password,
                 created_at: new Date().toISOString() // 現在時刻
                 }

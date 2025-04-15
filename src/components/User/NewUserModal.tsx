@@ -46,10 +46,10 @@ interface NewUserModalProps {
   setEmail: (value: string) => void;
   birthday: string;
   setBirthday: (value: string) => void;
-  group_id: string;
-  setGroupId: (value: string) => void;
-  status_id: string;
-  setStatusId: (value: string) => void;
+  group_id: number | null;
+  setGroupId: (value: number | null) => void;
+  status_id: number | null;
+  setStatusId: (value: number | null) => void;
   password: string;
   setPassword: (value: string) => void;
   handleRegister: () => void;
@@ -92,13 +92,13 @@ export default function NewUserModal({
         .select("id, group_name")
         .eq("delete_flag", 0);
 
-        console.log(data)
-
       if (error) {
         console.error("Error fetching groups:", error);
       } else {
         setGroups(data);
       }
+
+      console.log("グループデータ：", groups)
     };
 
     fetchGroups();
@@ -110,13 +110,13 @@ export default function NewUserModal({
         .select("id, status_name")
         .eq("delete_flag", 0);
 
-        console.log(data)
-
       if (error) {
         console.error("Error fetching status:", error);
       } else {
         setStatusName(data);
       }
+
+      console.log("ステータスデータ：", statusName)
     };
 
     fetchStatus();
@@ -204,10 +204,11 @@ export default function NewUserModal({
             <Select
               labelId="group-select-label"
               id="group_id"
-              value={selectedGroup}
+              value={selectedGroup || ''}
               onChange={(e) => {
-                setSelectedGroup(e.target.value);
-                setGroupId(e.target.value);
+                const value = e.target.value ? Number(e.target.value) : null;
+                setSelectedGroup(value);
+                setGroupId(value);
               }}
             >
               {groups.map((group) => (
@@ -222,10 +223,11 @@ export default function NewUserModal({
             <Select
               labelId="status-select-label"
               id="status_id"
-              value={selectedStatus}
+              value={selectedStatus || ''}
               onChange={(e) => {
-                setSelectedStatus(e.target.value);
-                setStatusId(e.target.value);
+                const value = e.target.value ? Number(e.target.value) : null;
+                setSelectedStatus(value);
+                setStatusId(value);
               }}
             >
               {statusName.map((status) => (

@@ -1,8 +1,36 @@
-# React + Vite
+# アプリ要件
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### アプリ名
+CircleHub
 
-Currently, two official plugins are available:
+### アプリURL
+https://circle-hub-one.vercel.app/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 概要
+社会人や大学生のサークルがライン、Googleカレンダー、GoogleDrive、紙の資料など複数のアプリ・ツールを使って管理しているものを  
+一元管理できるようにするためのアプリです。
+
+# ページ一覧
+- ログインページ  
+- ホーム画面（ダッシュボード）  
+- お知らせ  
+- カレンダー  
+- 動画  
+- お知らせ一覧  
+- ユーザ一覧  
+- 動画一覧  
+
+# デモURL・アカウント
+URL：https://circle-hub-one.vercel.app/  
+ログインID：shui.1kura@gmail.com  
+パスワード：password001
+
+# 使用している技術/フレームワーク
+- React  
+- Typescript  
+- TailwindCSS  
+- MaterialUI  
+- FullCalendar  
+
+# 使用している外部サービス
+- Supabase

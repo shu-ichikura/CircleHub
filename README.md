@@ -32,7 +32,7 @@ CircleHub
 
 # デモURL・アカウント
 URL：https://circle-hub-one.vercel.app/  
-ログインID：shui.1kura@gmail.com  
+ログインID：testuser@gmail.com  
 パスワード：password001
 
 # 使用している技術/フレームワーク
